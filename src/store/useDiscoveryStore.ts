@@ -28,7 +28,7 @@ export const useDiscoveryStore = create<DiscoveryStore>((set, get) => ({
     }
 
     // Connect to local discovery server (in production this would be your deployed wss URL)
-    const wsUrl = import.meta.env.VITE_WS_URL || 'ws://localhost:8080';
+    const wsUrl = import.meta.env.VITE_WS_URL || `${window.location.protocol === 'https:' ? 'wss' : 'ws'}://${window.location.host}`;
     const ws = new WebSocket(wsUrl);
 
     ws.onopen = () => {

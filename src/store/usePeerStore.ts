@@ -26,17 +26,18 @@ export const usePeerStore = create<PeerStore>((set, get) => ({
     peer.on('connection', (conn) => {
       set((state) => ({ connections: { ...state.connections, [conn.peer]: conn } }));
       
-      conn.on('data', (data) => {
-        // Handle incoming message
-        const payload = data as { text: string; id: string; timestamp: number };
-        useChatStore.getState().addMessage({
-          id: payload.id || uuidv4(),
+      conn.on('data', (data: any) => {
+        // Expect data shape { text: string, isSender: boolean }
+        const chatStore = useChatStore.getState();
+        const msg = {
+          id: crypto.randomUUID(),
           peerId: conn.peer,
-          text: payload.text,
-          timestamp: payload.timestamp || Date.now(),
+          text: data.text,
+          timestamp: Date.now(),
           isSender: false,
-          status: 'delivered'
-        });
+          status: 'sent'
+        };
+        chatStore.addMessage(msg);
       });
 
       conn.on('close', () => {
@@ -51,9 +52,9 @@ export const usePeerStore = create<PeerStore>((set, get) => ({
     set({ peer });
   },
   connectToPeer: (id) => {
-    return new Promise((resolve, reject) => {
+    return new Promise((resolve) => {
       const { peer, connections } = get();
-      if (!peer) return reject("Peer not initialized");
+      if (!peer) return;
       if (connections[id]) {
         resolve(connections[id]);
         return;
@@ -62,24 +63,23 @@ export const usePeerStore = create<PeerStore>((set, get) => ({
       const conn = peer.connect(id);
       conn.on('open', () => {
         set((state) => ({ connections: { ...state.connections, [id]: conn } }));
+        // Setup incoming data handler
+        conn.on('data', (data: any) => {
+          const chatStore = useChatStore.getState();
+          const msg = {
+            id: crypto.randomUUID(),
+            peerId: id,
+            text: data.text,
+            timestamp: Date.now(),
+            isSender: false,
+            status: 'sent'
+          };
+          chatStore.addMessage(msg);
+        });
         resolve(conn);
       });
       
-      conn.on('data', (data) => {
-        const payload = data as { text: string; id: string; timestamp: number };
-        useChatStore.getState().addMessage({
-          id: payload.id || uuidv4(),
-          peerId: id,
-          text: payload.text,
-          timestamp: payload.timestamp || Date.now(),
-          isSender: false,
-          status: 'delivered'
-        });
-      });
-      
-      conn.on('error', (err) => {
-        console.error("Connection error:", err);
-      });
+
     });
   },
   sendMessage: (peerId, text) => {
