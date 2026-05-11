@@ -1,12 +1,15 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { UserPlus, Activity } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useDiscoveryStore } from '../store/useDiscoveryStore';
+import { usePeerStore } from '../store/usePeerStore';
 
 export default function Discover() {
   const navigate = useNavigate();
   const { activeUsers, connectToDiscovery, disconnectFromDiscovery } = useDiscoveryStore();
+  const { connectToPeer } = usePeerStore();
+  const [manualPeerId, setManualPeerId] = useState('');
 
   useEffect(() => {
     connectToDiscovery();
@@ -17,6 +20,16 @@ export default function Discover() {
 
   const handleConnect = (peerId: string) => {
     navigate(`/chat/${peerId}`);
+  };
+
+  const handleManualConnect = async () => {
+    if (!manualPeerId) return;
+    try {
+      await connectToPeer(manualPeerId);
+      handleConnect(manualPeerId);
+    } catch (e) {
+      console.error('Failed to connect to peer', e);
+    }
   };
 
   return (
@@ -31,6 +44,23 @@ export default function Discover() {
       <p className="text-muted-foreground mb-8 leading-relaxed">
         Active users currently online in the ephemeral network. Click connect to establish a direct, end-to-end encrypted peer channel.
       </p>
+
+      {/* Manual connection input */}
+      <div className="mb-6 flex gap-2">
+        <input
+          type="text"
+          placeholder="Enter Peer ID"
+          value={manualPeerId}
+          onChange={(e) => setManualPeerId(e.target.value)}
+          className="flex-1 px-4 py-2 rounded-xl bg-white/5 border border-white/10 focus:border-primary outline-none text-foreground"
+        />
+        <button
+          onClick={handleManualConnect}
+          className="px-4 py-2 rounded-xl bg-primary text-white font-bold hover:bg-primary/90 transition"
+        >
+          Connect
+        </button>
+      </div>
 
       {activeUsers.length === 0 ? (
         <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground bg-white/5 rounded-3xl border border-white/10 p-12 text-center">

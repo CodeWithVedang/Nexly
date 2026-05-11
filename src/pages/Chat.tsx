@@ -1,26 +1,36 @@
-import { useState, useEffect, useRef } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Send, Lock, ShieldCheck } from 'lucide-react';
+import { Send, Lock, ShieldCheck, MessageSquare } from 'lucide-react';
 import { useChatStore } from '../store/useChatStore';
+import { useAuthStore } from '../store/useAuthStore';
 import { usePeerStore } from '../store/usePeerStore';
 import { useDiscoveryStore } from '../store/useDiscoveryStore';
+
 export default function Chat() {
   const { peerId } = useParams();
   const { messages, loadMessages, setActivePeerId } = useChatStore();
+  const { profile } = useAuthStore();
+  const { initPeer, connectToPeer, sendMessage } = usePeerStore();
   const { activeUsers } = useDiscoveryStore();
+  
   const [input, setInput] = useState('');
   const bottomRef = useRef<HTMLDivElement>(null);
 
-  const { connectToPeer, sendMessage } = usePeerStore();
+  useEffect(() => {
+    if (profile?.id) {
+      initPeer(profile.id);
+    }
+  }, [profile?.id, initPeer]);
 
   const activePeer = activeUsers.find(u => u.id === peerId);
   const displayName = activePeer?.username || 'Encrypted Peer';
-  const displayInitials = displayName.slice(0,2).toUpperCase();
+  const displayInitials = displayName.slice(0, 2).toUpperCase();
 
   useEffect(() => {
     if (peerId) {
       loadMessages(peerId);
+      setActivePeerId(peerId);
       connectToPeer(peerId).catch(console.error);
     } else {
       setActivePeerId(null);
@@ -51,7 +61,6 @@ export default function Chat() {
 
   return (
     <div className="h-screen flex flex-col max-w-4xl mx-auto border-x border-white/5 relative bg-background">
-      {/* Header */}
       <header className="p-4 border-b border-white/5 bg-background/80 backdrop-blur-md flex items-center justify-between sticky top-0 z-10">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center font-bold text-primary">
@@ -66,7 +75,6 @@ export default function Chat() {
         </div>
       </header>
 
-      {/* Messages */}
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
         <div className="text-center my-8">
           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 text-xs text-muted-foreground border border-white/10">
@@ -93,7 +101,6 @@ export default function Chat() {
         <div ref={bottomRef} />
       </div>
 
-      {/* Input */}
       <div className="p-4 bg-background border-t border-white/5">
         <form onSubmit={handleSend} className="flex gap-2">
           <input 
@@ -111,6 +118,3 @@ export default function Chat() {
     </div>
   );
 }
-
-// For empty state icon
-import { MessageSquare } from 'lucide-react';
