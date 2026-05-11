@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import Peer, { DataConnection } from 'peerjs';
-import { useChatStore } from './useChatStore';
+import { useChatStore, Message } from './useChatStore';
 import { v4 as uuidv4 } from 'uuid';
 
 interface PeerStore {
@@ -29,7 +29,7 @@ export const usePeerStore = create<PeerStore>((set, get) => ({
       conn.on('data', (data: any) => {
         // Expect data shape { text: string, isSender: boolean }
         const chatStore = useChatStore.getState();
-        const msg = {
+        const msg: Message = {
           id: crypto.randomUUID(),
           peerId: conn.peer,
           text: data.text,
@@ -66,7 +66,7 @@ export const usePeerStore = create<PeerStore>((set, get) => ({
         // Setup incoming data handler
         conn.on('data', (data: any) => {
           const chatStore = useChatStore.getState();
-          const msg = {
+          const msg: Message = {
             id: crypto.randomUUID(),
             peerId: id,
             text: data.text,

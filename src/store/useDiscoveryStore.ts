@@ -2,7 +2,7 @@
 import { create } from 'zustand';
 import { useAuthStore } from './useAuthStore';
 
-interface DiscoveredUser {
+export interface DiscoveredUser {
   id: string; // The Peer ID
   username: string;
   bio: string;

@@ -1,15 +1,101 @@
 import { useEffect, useState } from 'react';
-import { motion } from 'framer-motion';
-import { UserPlus, Activity } from 'lucide-react';
+import { motion, useMotionValue, useTransform, useAnimation, PanInfo, AnimatePresence } from 'framer-motion';
+import { UserPlus, Activity, X, Heart, MessageCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { useDiscoveryStore } from '../store/useDiscoveryStore';
+import { useDiscoveryStore, DiscoveredUser } from '../store/useDiscoveryStore';
 import { usePeerStore } from '../store/usePeerStore';
+
+const SwipeCard = ({ 
+  user, 
+  onSwipe, 
+  isTop 
+}: { 
+  user: DiscoveredUser, 
+  onSwipe: (dir: 'left' | 'right', user: DiscoveredUser) => void,
+  isTop: boolean
+}) => {
+  const x = useMotionValue(0);
+  const controls = useAnimation();
+  
+  const rotate = useTransform(x, [-200, 200], [-18, 18]);
+  
+  const likeOpacity = useTransform(x, [0, 100], [0, 1]);
+  const nopeOpacity = useTransform(x, [-100, 0], [1, 0]);
+
+  const handleDragEnd = async (_: any, info: PanInfo) => {
+    const swipeThreshold = 100;
+    if (info.offset.x > swipeThreshold) {
+      await controls.start({ x: 500, opacity: 0, transition: { duration: 0.3 } });
+      onSwipe('right', user);
+    } else if (info.offset.x < -swipeThreshold) {
+      await controls.start({ x: -500, opacity: 0, transition: { duration: 0.3 } });
+      onSwipe('left', user);
+    } else {
+      controls.start({ x: 0, transition: { type: 'spring', stiffness: 300, damping: 20 } });
+    }
+  };
+
+  return (
+    <motion.div
+      className="absolute inset-0 w-full h-[60vh] max-h-[600px] min-h-[400px] bg-card rounded-3xl border border-white/10 shadow-2xl overflow-hidden cursor-grab active:cursor-grabbing flex flex-col"
+      style={{
+        x,
+        rotate,
+        opacity: isTop ? 1 : 0.5,
+        scale: isTop ? 1 : 0.95,
+        zIndex: isTop ? 10 : 0
+      }}
+      drag={isTop ? "x" : false}
+      dragConstraints={{ left: 0, right: 0 }}
+      onDragEnd={handleDragEnd}
+      animate={controls}
+      whileTap={{ scale: 0.98 }}
+    >
+      {/* Background overlay matching tinder style */}
+      <div className="absolute inset-0 bg-gradient-to-b from-transparent via-background/20 to-background/90 z-10 pointer-events-none" />
+
+      {/* LIKE / NOPE Indicators */}
+      <motion.div 
+        style={{ opacity: likeOpacity }} 
+        className="absolute top-12 left-8 border-4 border-green-500 text-green-500 font-black text-4xl px-4 py-2 rounded-xl rotate-[-15deg] z-20 uppercase tracking-wider"
+      >
+        LIKE
+      </motion.div>
+      <motion.div 
+        style={{ opacity: nopeOpacity }} 
+        className="absolute top-12 right-8 border-4 border-red-500 text-red-500 font-black text-4xl px-4 py-2 rounded-xl rotate-[15deg] z-20 uppercase tracking-wider"
+      >
+        NOPE
+      </motion.div>
+
+      {/* Image Placeholder (or actual image if present) */}
+      <div className="w-full h-2/3 bg-primary/20 flex items-center justify-center relative">
+        <UserPlus className="w-24 h-24 text-primary/50" />
+      </div>
+
+      {/* User Info */}
+      <div className="absolute bottom-0 left-0 right-0 p-6 z-20 text-white">
+        <h2 className="text-3xl font-black mb-1">{user.username} <span className="font-normal text-xl text-white/80"></span></h2>
+        {user.bio && <p className="text-white/80 line-clamp-2 mb-4">{user.bio}</p>}
+        <div className="flex flex-wrap gap-2">
+          {(user.hobbies || []).map((h: string) => (
+            <span key={h} className="text-xs font-bold px-3 py-1.5 rounded-full bg-white/20 backdrop-blur-md">
+              {h}
+            </span>
+          ))}
+        </div>
+      </div>
+    </motion.div>
+  );
+};
 
 export default function Discover() {
   const navigate = useNavigate();
   const { activeUsers, connectToDiscovery, disconnectFromDiscovery } = useDiscoveryStore();
   const { connectToPeer } = usePeerStore();
-  const [manualPeerId, setManualPeerId] = useState('');
+  
+  // Track users we have swiped away
+  const [swipedIds, setSwipedIds] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     connectToDiscovery();
@@ -18,91 +104,99 @@ export default function Discover() {
     };
   }, [connectToDiscovery, disconnectFromDiscovery]);
 
-  const handleConnect = (peerId: string) => {
-    navigate(`/chat/${peerId}`);
-  };
-
-  const handleManualConnect = async () => {
-    if (!manualPeerId) return;
+  const handleConnect = async (peerId: string) => {
     try {
-      await connectToPeer(manualPeerId);
-      handleConnect(manualPeerId);
+      await connectToPeer(peerId);
+      navigate(`/chat/${peerId}`);
     } catch (e) {
       console.error('Failed to connect to peer', e);
     }
   };
 
+  const handleSwipe = (dir: 'left' | 'right', user: DiscoveredUser) => {
+    setSwipedIds(prev => {
+      const newSet = new Set(prev);
+      newSet.add(user.id);
+      return newSet;
+    });
+
+    if (dir === 'right') {
+      // It's a match! Or at least an attempt to connect
+      handleConnect(user.id);
+    }
+  };
+
+  const currentUsers = activeUsers.filter(u => !swipedIds.has(u.id));
+
   return (
-    <div className="max-w-4xl mx-auto p-8 pt-24 h-screen flex flex-col">
-      <div className="flex items-center justify-between mb-8">
-        <h1 className="text-3xl font-black">Discover Network</h1>
-        <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-green-500/10 text-green-400 border border-green-500/20 text-sm font-bold">
-          <Activity className="w-4 h-4 animate-pulse" /> Live
+    <div className="max-w-md mx-auto p-4 pt-16 h-screen flex flex-col overflow-hidden relative">
+      <div className="flex items-center justify-between mb-8 px-2">
+        <h1 className="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-primary to-pink-500">Discover</h1>
+        <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary border border-primary/20 text-sm font-bold shadow-[0_0_15px_rgba(var(--primary),0.3)]">
+          <Activity className="w-4 h-4 animate-pulse" /> {currentUsers.length} Live
         </div>
       </div>
       
-      <p className="text-muted-foreground mb-8 leading-relaxed">
-        Active users currently online in the ephemeral network. Click connect to establish a direct, end-to-end encrypted peer channel.
-      </p>
-
-      {/* Manual connection input */}
-      <div className="mb-6 flex gap-2">
-        <input
-          type="text"
-          placeholder="Enter Peer ID"
-          value={manualPeerId}
-          onChange={(e) => setManualPeerId(e.target.value)}
-          className="flex-1 px-4 py-2 rounded-xl bg-white/5 border border-white/10 focus:border-primary outline-none text-foreground"
-        />
-        <button
-          onClick={handleManualConnect}
-          className="px-4 py-2 rounded-xl bg-primary text-white font-bold hover:bg-primary/90 transition"
-        >
-          Connect
-        </button>
+      <div className="flex-1 relative w-full flex items-center justify-center">
+        {currentUsers.length === 0 ? (
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="flex flex-col items-center justify-center text-center p-8 bg-white/5 rounded-3xl border border-white/10 w-full"
+          >
+            <div className="w-24 h-24 rounded-full bg-primary/20 flex items-center justify-center mb-6 relative">
+              <div className="absolute inset-0 rounded-full border-4 border-primary/30 animate-ping" />
+              <Heart className="w-10 h-10 text-primary" />
+            </div>
+            <h3 className="text-2xl font-black mb-2">You're out of peers!</h3>
+            <p className="text-muted-foreground mb-6">
+              Wait for more people to join the ephemeral network.
+            </p>
+            <button 
+              onClick={() => setSwipedIds(new Set())}
+              className="px-6 py-3 rounded-full bg-primary/20 text-primary font-bold hover:bg-primary hover:text-white transition"
+            >
+              Rewind Swipes
+            </button>
+          </motion.div>
+        ) : (
+          <div className="relative w-full h-[60vh] max-h-[600px] min-h-[400px]">
+            <AnimatePresence>
+              {currentUsers.map((user, i) => (
+                <SwipeCard 
+                  key={user.id} 
+                  user={user} 
+                  onSwipe={handleSwipe} 
+                  isTop={i === 0} 
+                />
+              )).reverse()}
+            </AnimatePresence>
+          </div>
+        )}
       </div>
 
-      {activeUsers.length === 0 ? (
-        <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground bg-white/5 rounded-3xl border border-white/10 p-12 text-center">
-          <Activity className="w-12 h-12 mb-4 opacity-50" />
-          <p className="font-medium text-lg">Looking for peers...</p>
-          <p className="text-sm">You are currently the only one online. Invite a friend to join!</p>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pb-20 overflow-y-auto">
-          {activeUsers.map((user, i) => (
-            <motion.div 
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: i * 0.05 }}
-              key={user.id}
-              className="p-6 rounded-2xl bg-white/5 border border-white/10 hover:bg-white/10 transition flex flex-col"
-            >
-              <div className="flex items-start justify-between mb-4">
-                <div>
-                  <h3 className="font-bold text-xl">{user.username}</h3>
-                  {user.bio && <p className="text-sm text-muted-foreground mt-1 line-clamp-2">{user.bio}</p>}
-                </div>
-              </div>
-              
-              <div className="flex flex-wrap gap-2 mb-6">
-                {(user.hobbies || []).map((h) => (
-                  <span key={h} className="text-xs px-2 py-1 rounded-full bg-primary/20 text-primary">
-                    {h}
-                  </span>
-                ))}
-              </div>
+      {currentUsers.length > 0 && (
+        <div className="flex justify-center items-center gap-6 mt-8 mb-4">
+          <button 
+            onClick={() => handleSwipe('left', currentUsers[0])}
+            className="w-16 h-16 rounded-full bg-red-500/10 border-2 border-red-500/30 flex items-center justify-center text-red-500 hover:bg-red-500 hover:text-white transition transform hover:scale-110 shadow-[0_0_20px_rgba(239,68,68,0.2)]"
+          >
+            <X className="w-8 h-8" />
+          </button>
+          
+          <button 
+            onClick={() => handleConnect(currentUsers[0].id)}
+            className="w-12 h-12 rounded-full bg-blue-500/10 border-2 border-blue-500/30 flex items-center justify-center text-blue-500 hover:bg-blue-500 hover:text-white transition transform hover:scale-110 shadow-[0_0_20px_rgba(59,130,246,0.2)]"
+          >
+            <MessageCircle className="w-6 h-6" />
+          </button>
 
-              <div className="mt-auto">
-                <button 
-                  onClick={() => handleConnect(user.id)}
-                  className="w-full py-3 rounded-xl bg-primary/20 text-primary font-bold hover:bg-primary hover:text-white transition shadow-lg flex items-center justify-center gap-2"
-                >
-                  <UserPlus className="w-5 h-5" /> Connect Securely
-                </button>
-              </div>
-            </motion.div>
-          ))}
+          <button 
+            onClick={() => handleSwipe('right', currentUsers[0])}
+            className="w-16 h-16 rounded-full bg-green-500/10 border-2 border-green-500/30 flex items-center justify-center text-green-500 hover:bg-green-500 hover:text-white transition transform hover:scale-110 shadow-[0_0_20px_rgba(34,197,94,0.2)]"
+          >
+            <Heart className="w-8 h-8" fill="currentColor" />
+          </button>
         </div>
       )}
     </div>
