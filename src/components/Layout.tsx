@@ -28,7 +28,7 @@ export default function Layout() {
   ];
 
   return (
-    <div className="flex h-screen bg-background text-foreground overflow-hidden">
+    <div className="flex h-[100dvh] bg-background text-foreground overflow-hidden">
       {/* Desktop Sidebar */}
       <aside className="hidden md:flex flex-col w-20 lg:w-64 border-r border-white/5 bg-background/50 backdrop-blur-xl transition-all">
         <div className="p-6 flex items-center justify-center lg:justify-start gap-3">

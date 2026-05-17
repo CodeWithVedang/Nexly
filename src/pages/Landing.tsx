@@ -44,13 +44,21 @@ export default function Landing() {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.3 }}
-          className="grid grid-cols-1 md:grid-cols-3 gap-8 mt-24 max-w-6xl mx-auto px-4"
+          className="grid grid-cols-1 md:grid-cols-3 gap-8 mt-24 max-w-6xl mx-auto px-4 w-full"
         >
           <FeatureCard icon={<Lock />} title="End-to-End Encrypted" desc="AES-GCM encryption with ECDH key exchange. Keys never leave your device." />
           <FeatureCard icon={<Zap />} title="Peer-to-Peer" desc="Direct connection via WebRTC. No middlemen. Lowest latency possible." />
           <FeatureCard icon={<Globe />} title="Zero Data Retention" desc="No backend databases. Messages vanish instantly when you disconnect." />
         </motion.div>
       </main>
+      
+      <footer className="py-6 text-center text-sm text-muted-foreground z-10 border-t border-white/5 bg-background/50 backdrop-blur-md">
+        <div className="flex justify-center gap-6">
+          <Link to="/privacy" className="hover:text-primary transition">Privacy Policy</Link>
+          <Link to="/terms" className="hover:text-primary transition">Terms & Conditions</Link>
+        </div>
+        <p className="mt-4">&copy; {new Date().getFullYear()} Nexly. All rights reserved.</p>
+      </footer>
     </div>
   );
 }

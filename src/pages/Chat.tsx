@@ -60,7 +60,7 @@ export default function Chat() {
 
   if (!peerId) {
     return (
-      <div className="h-screen max-w-4xl mx-auto border-x border-white/5 bg-background p-6 overflow-y-auto">
+      <div className="h-full min-h-full pb-20 md:pb-0 max-w-4xl mx-auto border-x border-white/5 bg-background p-6 overflow-y-auto">
         <h1 className="text-3xl font-black mb-8 flex items-center gap-2">
           <MessageSquare className="text-primary" /> Chats & Connections
         </h1>
@@ -137,7 +137,7 @@ export default function Chat() {
   }
 
   return (
-    <div className="h-screen flex flex-col max-w-4xl mx-auto border-x border-white/5 relative bg-background">
+    <div className="h-full min-h-full pb-20 md:pb-0 flex flex-col max-w-4xl mx-auto border-x border-white/5 relative bg-background">
       <header className="p-4 border-b border-white/5 bg-background/80 backdrop-blur-md flex items-center justify-between sticky top-0 z-10">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center font-bold text-primary">

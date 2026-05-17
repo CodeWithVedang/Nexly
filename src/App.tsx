@@ -13,6 +13,7 @@ import Chat from './pages/Chat';
 import Settings from './pages/Settings';
 import ProfileView from './pages/ProfileView';
 import Privacy from './pages/Privacy';
+import Terms from './pages/Terms';
 import NotFound from './pages/NotFound';
 import Layout from './components/Layout';
 
@@ -42,6 +43,9 @@ function App() {
       <Route path="/auth" element={!isAuth ? <Auth /> : <Navigate to="/dashboard" />} />
       <Route path="/setup" element={isAuth ? <ProfileSetup /> : <Navigate to="/" />} />
       
+      <Route path="/privacy" element={<Privacy />} />
+      <Route path="/terms" element={<Terms />} />
+      
       {/* Protected Routes inside Layout */}
       <Route element={isAuth ? <Layout /> : <Navigate to="/auth" />}>
         <Route path="/dashboard" element={<Dashboard />} />
@@ -50,7 +54,6 @@ function App() {
         <Route path="/chat/:peerId" element={<Chat />} />
         <Route path="/settings" element={<Settings />} />
         <Route path="/profile" element={<ProfileView />} />
-        <Route path="/privacy" element={<Privacy />} />
       </Route>
 
       <Route path="*" element={<NotFound />} />

@@ -7,10 +7,15 @@ import { v4 as uuidv4 } from 'uuid';
 export default function Auth() {
   const { login } = useAuthStore();
   const [username, setUsername] = useState('');
+  const [isAdult, setIsAdult] = useState(false);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!username) return;
+    if (!isAdult) {
+      alert("You must be 18 or older to use Nexly.");
+      return;
+    }
     
     // Generate temporary identity
     await login({
@@ -56,9 +61,26 @@ export default function Auth() {
               maxLength={20}
             />
           </div>
+
+          <label className="flex items-start gap-3 cursor-pointer">
+            <div className="mt-1">
+              <input 
+                type="checkbox" 
+                className="w-5 h-5 rounded border-white/20 bg-black/20 text-primary focus:ring-primary focus:ring-offset-background"
+                checked={isAdult}
+                onChange={(e) => setIsAdult(e.target.checked)}
+                required
+              />
+            </div>
+            <span className="text-sm text-muted-foreground">
+              I verify that I am 18 years of age or older. I agree to the <a href="/terms" target="_blank" className="text-primary hover:underline">Terms & Conditions</a> and <a href="/privacy" target="_blank" className="text-primary hover:underline">Privacy Policy</a>.
+            </span>
+          </label>
+
           <button 
             type="submit"
-            className="w-full py-4 rounded-xl bg-primary text-white font-bold hover:bg-primary/90 transition shadow-[0_0_20px_rgba(139,92,246,0.3)]"
+            className="w-full py-4 rounded-xl bg-primary text-white font-bold hover:bg-primary/90 transition shadow-[0_0_20px_rgba(139,92,246,0.3)] disabled:opacity-50 disabled:cursor-not-allowed"
+            disabled={!isAdult || !username}
           >
             Generate Identity
           </button>
