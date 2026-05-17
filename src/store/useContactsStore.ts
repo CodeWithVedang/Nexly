@@ -50,10 +50,14 @@ export const useContactsStore = create<ContactsStore>((set, get) => ({
     await db.put('contacts', request);
     await db.delete('pending_requests', id);
     
-    set((state) => ({
-      contacts: [...state.contacts, request],
-      pendingRequests: state.pendingRequests.filter(r => r.id !== id)
-    }));
+    set((state) => {
+      // Ensure we don't duplicate contacts
+      const filteredContacts = state.contacts.filter(c => c.id !== id);
+      return {
+        contacts: [...filteredContacts, request],
+        pendingRequests: state.pendingRequests.filter(r => r.id !== id)
+      };
+    });
   },
   rejectRequest: async (id) => {
     const db = await getDB();
