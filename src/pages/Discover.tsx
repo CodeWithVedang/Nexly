@@ -94,6 +94,7 @@ export default function Discover() {
   const navigate = useNavigate();
   const { activeUsers, connectToDiscovery, disconnectFromDiscovery } = useDiscoveryStore();
   const { connectToPeer } = usePeerStore();
+  const { contacts, pendingRequests } = useContactsStore();
   
   // Track users we have swiped away
   const [swipedIds, setSwipedIds] = useState<Set<string>>(new Set());
@@ -128,7 +129,11 @@ export default function Discover() {
     }
   };
 
-  const currentUsers = activeUsers.filter(u => !swipedIds.has(u.id));
+  const currentUsers = activeUsers.filter(u => 
+    !swipedIds.has(u.id) && 
+    !contacts.some(c => c.id === u.id) && 
+    !pendingRequests.some(r => r.id === u.id)
+  );
 
   return (
     <div className="max-w-md mx-auto p-4 pt-16 h-screen flex flex-col overflow-hidden relative">
