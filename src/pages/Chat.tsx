@@ -11,14 +11,15 @@ import { useContactsStore } from '../store/useContactsStore';
 export default function Chat() {
   const { peerId } = useParams();
   const navigate = useNavigate();
-  const { messages, loadMessages, setActivePeerId } = useChatStore();
+  const { messages, loadMessages, setActivePeerId, typingStatus } = useChatStore();
   const { profile } = useAuthStore();
-  const { initPeer, connectToPeer, sendMessage } = usePeerStore();
+  const { initPeer, connectToPeer, sendMessage, sendTyping } = usePeerStore();
   const { activeUsers } = useDiscoveryStore();
   const { contacts, pendingRequests, loadContacts, acceptRequest, rejectRequest } = useContactsStore();
   
   const [input, setInput] = useState('');
   const bottomRef = useRef<HTMLDivElement>(null);
+  const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     if (profile?.id) {
@@ -48,11 +49,26 @@ export default function Chat() {
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
+  }, [messages, typingStatus]);
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setInput(e.target.value);
+    if (!peerId) return;
+
+    sendTyping(peerId, true);
+
+    if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+    typingTimeoutRef.current = setTimeout(() => {
+      sendTyping(peerId, false);
+    }, 2000);
+  };
 
   const handleSend = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!input.trim() || !peerId) return;
+
+    if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+    sendTyping(peerId, false);
 
     sendMessage(peerId, input);
     setInput('');
@@ -136,6 +152,8 @@ export default function Chat() {
     );
   }
 
+  const isPeerTyping = typingStatus[peerId];
+
   return (
     <div className="h-full min-h-full pb-20 md:pb-0 flex flex-col max-w-4xl mx-auto border-x border-white/5 relative bg-background">
       <header className="p-4 border-b border-white/5 bg-background/80 backdrop-blur-md flex items-center justify-between sticky top-0 z-10">
@@ -175,6 +193,23 @@ export default function Chat() {
             </div>
           </motion.div>
         ))}
+        
+        {isPeerTyping && (
+          <motion.div 
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="flex justify-start"
+          >
+            <div className="max-w-[70%] p-4 rounded-2xl bg-white/10 text-foreground rounded-tl-sm flex items-center gap-2">
+              <div className="flex space-x-1">
+                <div className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce [animation-delay:-0.3s]"></div>
+                <div className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce [animation-delay:-0.15s]"></div>
+                <div className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce"></div>
+              </div>
+            </div>
+          </motion.div>
+        )}
+        
         <div ref={bottomRef} />
       </div>
 
@@ -183,7 +218,7 @@ export default function Chat() {
           <input 
             type="text"
             value={input}
-            onChange={(e) => setInput(e.target.value)}
+            onChange={handleInputChange}
             placeholder="Type an encrypted message..."
             className="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-3 outline-none focus:border-primary transition"
           />

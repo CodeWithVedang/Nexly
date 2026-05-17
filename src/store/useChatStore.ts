@@ -13,15 +13,21 @@ export interface Message {
 interface ChatStore {
   messages: Message[];
   activePeerId: string | null;
+  typingStatus: Record<string, boolean>;
   setActivePeerId: (id: string | null) => void;
   loadMessages: (peerId: string) => Promise<void>;
   addMessage: (msg: Message) => Promise<void>;
+  setTypingStatus: (peerId: string, isTyping: boolean) => void;
 }
 
 export const useChatStore = create<ChatStore>((set, get) => ({
   messages: [],
   activePeerId: null,
+  typingStatus: {},
   setActivePeerId: (id) => set({ activePeerId: id }),
+  setTypingStatus: (peerId, isTyping) => set((state) => ({
+    typingStatus: { ...state.typingStatus, [peerId]: isTyping }
+  })),
   loadMessages: async (peerId) => {
     const db = await getDB();
     const all = await db.getAllFromIndex('messages', 'by-peer', peerId);

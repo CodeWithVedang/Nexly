@@ -20,25 +20,47 @@ export default function Landing() {
         </nav>
       </header>
 
-      <main className="flex-1 flex flex-col items-center justify-center text-center px-4 z-10">
-        <motion.div 
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="max-w-4xl mx-auto"
-        >
-          <h1 className="text-6xl md:text-8xl font-black mb-6 tracking-tight">
-            Secure. Pure. <br />
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary via-blue-400 to-cyan-400">Uncompromised.</span>
-          </h1>
-          <p className="text-xl md:text-2xl text-muted-foreground mb-10 max-w-2xl mx-auto">
-            The modern peer-to-peer encrypted social platform. Zero servers. Total privacy. Connect instantly with shared interests.
-          </p>
-          <div className="flex gap-4 justify-center">
-            <Link to="/auth" className="px-8 py-4 rounded-full bg-primary text-white text-lg font-bold hover:scale-105 transition shadow-[0_0_30px_rgba(139,92,246,0.5)]">
-              Launch Nexly
-            </Link>
-          </div>
-        </motion.div>
+      <main className="flex-1 flex flex-col items-center justify-center text-center lg:text-left px-4 z-10 py-20">
+        <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
+          <motion.div 
+            initial={{ opacity: 0, x: -50 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.8, ease: "easeOut" }}
+          >
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary border border-primary/20 text-sm font-bold shadow-[0_0_15px_rgba(var(--primary),0.3)] mb-8">
+              <Zap className="w-4 h-4" /> Next-Gen P2P Chat
+            </div>
+            <h1 className="text-6xl lg:text-8xl font-black mb-6 tracking-tight leading-[1.1]">
+              Secure. Pure. <br />
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary via-blue-400 to-cyan-400">Uncompromised.</span>
+            </h1>
+            <p className="text-xl md:text-2xl text-muted-foreground mb-10 max-w-2xl">
+              The modern peer-to-peer encrypted social platform. Zero servers. Total privacy. Connect instantly with shared interests.
+            </p>
+            <div className="flex gap-4 lg:justify-start justify-center">
+              <Link to="/auth" className="px-8 py-4 rounded-full bg-primary text-white text-lg font-bold hover:scale-105 transition shadow-[0_0_40px_rgba(139,92,246,0.6)]">
+                Launch Nexly
+              </Link>
+            </div>
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 1, ease: "easeOut", delay: 0.2 }}
+            className="relative hidden lg:block"
+          >
+            {/* Glowing backdrop for 3D image */}
+            <div className="absolute inset-0 bg-gradient-to-tr from-primary to-cyan-500 rounded-full blur-[100px] opacity-30 animate-pulse" />
+            <motion.img 
+              src="/hero-3d.png" 
+              alt="Nexly 3D Network" 
+              className="relative z-10 w-full max-w-lg mx-auto drop-shadow-2xl"
+              animate={{ y: [-15, 15, -15] }}
+              transition={{ repeat: Infinity, duration: 6, ease: "easeInOut" }}
+            />
+          </motion.div>
+        </div>
 
         <motion.div 
           initial={{ opacity: 0 }}

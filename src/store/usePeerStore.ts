@@ -11,6 +11,7 @@ interface PeerStore {
   initPeer: (id: string) => void;
   connectToPeer: (id: string, metadata?: any) => Promise<DataConnection>;
   sendMessage: (peerId: string, text: string) => void;
+  sendTyping: (peerId: string, isTyping: boolean) => void;
   disconnectAll: () => void;
 }
 
@@ -44,8 +45,13 @@ export const usePeerStore = create<PeerStore>((set, get) => ({
       });
       
       conn.on('data', (data: any) => {
-        console.log("Received data from:", conn.peer, data);
         const chatStore = useChatStore.getState();
+        if (data.type === 'typing') {
+          chatStore.setTypingStatus(conn.peer, data.isTyping);
+          return;
+        }
+
+        console.log("Received data from:", conn.peer, data);
         const msg: Message = {
           id: data.id || crypto.randomUUID(),
           peerId: conn.peer,
@@ -111,8 +117,13 @@ export const usePeerStore = create<PeerStore>((set, get) => ({
         
         // Setup incoming data handler
         conn.on('data', (data: any) => {
-          console.log("Received data (initiated connection) from:", id, data);
           const chatStore = useChatStore.getState();
+          if (data.type === 'typing') {
+            chatStore.setTypingStatus(id, data.isTyping);
+            return;
+          }
+
+          console.log("Received data (initiated connection) from:", id, data);
           const msg: Message = {
             id: data.id || crypto.randomUUID(),
             peerId: id,
@@ -151,14 +162,20 @@ export const usePeerStore = create<PeerStore>((set, get) => ({
     // Send over WebRTC
     if (conn && conn.open) {
       console.log("Connection is open, sending data...");
-      conn.send({ text, id: msgId, timestamp });
+      conn.send({ type: 'message', text, id: msgId, timestamp });
     } else {
       console.log("Connection not open, attempting to connect first...");
       // Try to connect then send
       get().connectToPeer(peerId).then((newConn) => {
         console.log("Connected, sending data...");
-        newConn.send({ text, id: msgId, timestamp });
+        newConn.send({ type: 'message', text, id: msgId, timestamp });
       }).catch(e => console.error("Failed to connect for sending", e));
+    }
+  },
+  sendTyping: (peerId, isTyping) => {
+    const conn = get().connections[peerId];
+    if (conn && conn.open) {
+      conn.send({ type: 'typing', isTyping });
     }
   },
   disconnectAll: () => {

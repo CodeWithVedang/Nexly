@@ -1,6 +1,6 @@
 import { useThemeStore } from '../store/useThemeStore';
 import { useAuthStore } from '../store/useAuthStore';
-import { Moon, Sun, Monitor, Trash2, Key } from 'lucide-react';
+import { Moon, Sun, Monitor, Trash2 } from 'lucide-react';
 
 export default function Settings() {
   const { theme, toggleTheme } = useThemeStore();
@@ -27,18 +27,7 @@ export default function Settings() {
           </div>
         </section>
 
-        <section>
-          <h2 className="text-xl font-bold mb-4 flex items-center gap-2"><Key className="w-5 h-5"/> Encryption</h2>
-          <div className="p-6 rounded-2xl bg-white/5 border border-white/10 space-y-4">
-            <div>
-              <p className="font-medium">Session Key</p>
-              <p className="text-sm text-muted-foreground">Your ECDH public key for this session. Ephemeral and local.</p>
-            </div>
-            <code className="block p-4 rounded-xl bg-black/40 text-xs text-primary font-mono break-all border border-white/5">
-              MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAE... (Sample local key)
-            </code>
-          </div>
-        </section>
+
 
         <section>
           <h2 className="text-xl font-bold mb-4 flex items-center gap-2 text-destructive"><Trash2 className="w-5 h-5"/> Danger Zone</h2>
