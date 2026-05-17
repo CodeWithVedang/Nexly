@@ -1,70 +1,98 @@
 /// <reference types="vite/client" />
 import { create } from 'zustand';
 import { useAuthStore } from './useAuthStore';
+import mqtt from 'mqtt';
 
 export interface DiscoveredUser {
   id: string; // The Peer ID
   username: string;
   bio: string;
   hobbies: string[];
+  lastSeen?: number;
 }
 
 interface DiscoveryStore {
   activeUsers: DiscoveredUser[];
-  ws: WebSocket | null;
+  client: mqtt.MqttClient | null;
   connectToDiscovery: () => void;
   disconnectFromDiscovery: () => void;
 }
 
+const TOPIC = 'nexly/discovery/users';
+
 export const useDiscoveryStore = create<DiscoveryStore>((set, get) => ({
   activeUsers: [],
-  ws: null,
+  client: null,
   connectToDiscovery: () => {
     const profile = useAuthStore.getState().profile;
     if (!profile) return;
 
-    if (get().ws) {
-      get().ws?.close();
+    if (get().client) {
+      get().client?.end();
     }
 
-    // Connect to local discovery server (in production this would be your deployed wss URL)
-    const wsUrl = import.meta.env.VITE_WS_URL || `${window.location.protocol === 'https:' ? 'wss' : 'ws'}://${window.location.host}`;
-    const ws = new WebSocket(wsUrl);
+    // Connect to public MQTT broker over WebSockets
+    const client = mqtt.connect('wss://broker.hivemq.com:8884/mqtt');
 
-    ws.onopen = () => {
-      console.log('Connected to Discovery Server');
-      // Broadcast our presence, including our Peer ID (which is profile.id in this setup)
-      ws.send(JSON.stringify({ 
-        type: 'join', 
-        user: {
-          id: profile.id,
-          username: profile.username,
-          bio: profile.bio,
-          hobbies: profile.hobbies
-        } 
-      }));
-    };
-
-    ws.onmessage = (event) => {
-      try {
-        const data = JSON.parse(event.data);
-        if (data.type === 'users_update') {
-          // Filter out ourselves
-          const others = data.users.filter((u: DiscoveredUser) => u.id !== profile.id);
-          set({ activeUsers: others });
+    client.on('connect', () => {
+      console.log('Connected to Public Discovery Network');
+      client.subscribe(TOPIC);
+      
+      // Broadcast our presence every 10 seconds
+      const broadcastPresence = () => {
+        if (client.connected) {
+          client.publish(TOPIC, JSON.stringify({ 
+            id: profile.id,
+            username: profile.username,
+            bio: profile.bio,
+            hobbies: profile.hobbies,
+            lastSeen: Date.now()
+          }));
         }
-      } catch(e) {}
-    };
+      };
 
-    ws.onclose = () => {
-      console.log('Disconnected from Discovery Server');
-      set({ ws: null, activeUsers: [] });
-    };
+      broadcastPresence();
+      const interval = setInterval(broadcastPresence, 10000);
+      
+      // Cleanup interval on disconnect
+      client.on('close', () => clearInterval(interval));
+    });
 
-    set({ ws });
+    client.on('message', (topic, message) => {
+      if (topic === TOPIC) {
+        try {
+          const user: DiscoveredUser = JSON.parse(message.toString());
+          if (user.id === profile.id) return; // Ignore self
+          
+          set((state) => {
+            const existing = state.activeUsers.findIndex(u => u.id === user.id);
+            const now = Date.now();
+            let newUsers = [...state.activeUsers];
+            
+            if (existing >= 0) {
+              newUsers[existing] = { ...user, lastSeen: now };
+            } else {
+              newUsers.push({ ...user, lastSeen: now });
+            }
+            
+            // Clean up stale users (not seen in 30 seconds)
+            newUsers = newUsers.filter(u => now - (u.lastSeen || now) < 30000);
+            
+            return { activeUsers: newUsers };
+          });
+        } catch(e) {}
+      }
+    });
+
+    client.on('close', () => {
+      console.log('Disconnected from Discovery Network');
+      set({ client: null });
+    });
+
+    set({ client });
   },
   disconnectFromDiscovery: () => {
-    get().ws?.close();
-    set({ ws: null, activeUsers: [] });
+    get().client?.end();
+    set({ client: null, activeUsers: [] });
   }
 }));
