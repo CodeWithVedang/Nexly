@@ -45,20 +45,82 @@ export default function Landing() {
           </motion.div>
 
           <motion.div
-            initial={{ opacity: 0, scale: 0.8 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 1, ease: "easeOut", delay: 0.2 }}
+            initial={{ opacity: 0, x: 50 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.8, ease: "easeOut", delay: 0.3 }}
             className="relative hidden lg:block"
           >
-            {/* Glowing backdrop for 3D image */}
-            <div className="absolute inset-0 bg-gradient-to-tr from-primary to-cyan-500 rounded-full blur-[100px] opacity-30 animate-pulse" />
-            <motion.img 
-              src="/hero-3d.png" 
-              alt="Nexly 3D Network" 
-              className="relative z-10 w-full max-w-lg mx-auto drop-shadow-2xl"
-              animate={{ y: [-15, 15, -15] }}
-              transition={{ repeat: Infinity, duration: 6, ease: "easeInOut" }}
-            />
+            {/* Glow */}
+            <div className="absolute inset-0 bg-gradient-to-tr from-primary/30 to-cyan-500/20 rounded-[40px] blur-[60px] opacity-60" />
+
+            {/* Chat card */}
+            <div className="relative z-10 bg-white/5 border border-white/10 backdrop-blur-xl rounded-[32px] p-6 max-w-sm mx-auto shadow-2xl">
+              {/* Header */}
+              <div className="flex items-center gap-3 pb-4 border-b border-white/10 mb-4">
+                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary to-cyan-400 flex items-center justify-center font-bold text-white text-sm">A</div>
+                <div>
+                  <p className="font-bold text-sm">Alex</p>
+                  <p className="text-xs text-green-400">● Online</p>
+                </div>
+                <div className="ml-auto">
+                  <Shield className="w-4 h-4 text-primary opacity-60" />
+                </div>
+              </div>
+
+              {/* Messages */}
+              <div className="space-y-3">
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.8 }}
+                  className="flex justify-start"
+                >
+                  <div className="bg-white/10 rounded-2xl rounded-tl-sm px-4 py-2 text-sm max-w-[80%]">
+                    Hey! Is this really encrypted? 🔐
+                  </div>
+                </motion.div>
+
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 1.3 }}
+                  className="flex justify-end"
+                >
+                  <div className="bg-primary rounded-2xl rounded-tr-sm px-4 py-2 text-sm text-white max-w-[80%]">
+                    100% P2P. No servers store anything 🚀
+                  </div>
+                </motion.div>
+
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 1.8 }}
+                  className="flex justify-start"
+                >
+                  <div className="bg-white/10 rounded-2xl rounded-tl-sm px-4 py-2 text-sm max-w-[80%]">
+                    That's amazing! Total privacy 😍
+                  </div>
+                </motion.div>
+
+                {/* Typing indicator */}
+                <motion.div
+                  initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+                  transition={{ delay: 2.4, repeat: Infinity, repeatType: "reverse", duration: 1.5 }}
+                  className="flex justify-end"
+                >
+                  <div className="bg-primary/30 border border-primary/30 rounded-2xl rounded-tr-sm px-4 py-3 flex gap-1 items-center">
+                    <div className="w-2 h-2 bg-primary rounded-full animate-bounce [animation-delay:-0.3s]" />
+                    <div className="w-2 h-2 bg-primary rounded-full animate-bounce [animation-delay:-0.15s]" />
+                    <div className="w-2 h-2 bg-primary rounded-full animate-bounce" />
+                  </div>
+                </motion.div>
+              </div>
+
+              {/* Input bar */}
+              <div className="mt-4 flex items-center gap-2 bg-white/5 border border-white/10 rounded-2xl px-4 py-2">
+                <span className="text-xs text-muted-foreground flex-1">Type a message...</span>
+                <div className="w-7 h-7 bg-primary rounded-full flex items-center justify-center">
+                  <Zap className="w-3 h-3 text-white" />
+                </div>
+              </div>
+            </div>
           </motion.div>
         </div>
 
