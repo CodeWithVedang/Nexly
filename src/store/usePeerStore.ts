@@ -1,13 +1,15 @@
 import { create } from 'zustand';
 import Peer, { DataConnection } from 'peerjs';
 import { useChatStore, Message } from './useChatStore';
+import { useAuthStore } from './useAuthStore';
+import { useContactsStore } from './useContactsStore';
 import { v4 as uuidv4 } from 'uuid';
 
 interface PeerStore {
   peer: Peer | null;
   connections: Record<string, DataConnection>;
   initPeer: (id: string) => void;
-  connectToPeer: (id: string) => Promise<DataConnection>;
+  connectToPeer: (id: string, metadata?: any) => Promise<DataConnection>;
   sendMessage: (peerId: string, text: string) => void;
   disconnectAll: () => void;
 }
@@ -24,16 +26,24 @@ export const usePeerStore = create<PeerStore>((set, get) => ({
     });
     
     peer.on('connection', (conn) => {
+      // Handle incoming connection metadata
+      if (conn.metadata && conn.metadata.type === 'request' && conn.metadata.profile) {
+        const { contacts, addPendingRequest } = useContactsStore.getState();
+        if (!contacts.find(c => c.id === conn.metadata.profile.id)) {
+          addPendingRequest(conn.metadata.profile);
+        }
+      }
+
       set((state) => ({ connections: { ...state.connections, [conn.peer]: conn } }));
       
       conn.on('data', (data: any) => {
         // Expect data shape { text: string, isSender: boolean }
         const chatStore = useChatStore.getState();
         const msg: Message = {
-          id: crypto.randomUUID(),
+          id: data.id || crypto.randomUUID(),
           peerId: conn.peer,
           text: data.text,
-          timestamp: Date.now(),
+          timestamp: data.timestamp || Date.now(),
           isSender: false,
           status: 'sent'
         };
@@ -51,26 +61,39 @@ export const usePeerStore = create<PeerStore>((set, get) => ({
 
     set({ peer });
   },
-  connectToPeer: (id) => {
+  connectToPeer: (id, extraMetadata = {}) => {
     return new Promise((resolve) => {
       const { peer, connections } = get();
       if (!peer) return;
-      if (connections[id]) {
+      if (connections[id] && connections[id].open) {
         resolve(connections[id]);
         return;
       }
 
-      const conn = peer.connect(id);
+      const profile = useAuthStore.getState().profile;
+      const metadata = {
+        type: 'request',
+        profile: profile ? {
+          id: profile.id,
+          username: profile.username,
+          bio: profile.bio,
+          hobbies: profile.hobbies
+        } : null,
+        ...extraMetadata
+      };
+
+      const conn = peer.connect(id, { metadata });
+      
       conn.on('open', () => {
         set((state) => ({ connections: { ...state.connections, [id]: conn } }));
         // Setup incoming data handler
         conn.on('data', (data: any) => {
           const chatStore = useChatStore.getState();
           const msg: Message = {
-            id: crypto.randomUUID(),
+            id: data.id || crypto.randomUUID(),
             peerId: id,
             text: data.text,
-            timestamp: Date.now(),
+            timestamp: data.timestamp || Date.now(),
             isSender: false,
             status: 'sent'
           };
@@ -78,8 +101,6 @@ export const usePeerStore = create<PeerStore>((set, get) => ({
         });
         resolve(conn);
       });
-      
-
     });
   },
   sendMessage: (peerId, text) => {

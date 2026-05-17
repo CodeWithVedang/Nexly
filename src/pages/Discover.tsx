@@ -4,6 +4,7 @@ import { UserPlus, Activity, X, Heart, MessageCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useDiscoveryStore, DiscoveredUser } from '../store/useDiscoveryStore';
 import { usePeerStore } from '../store/usePeerStore';
+import { useContactsStore } from '../store/useContactsStore';
 
 const SwipeCard = ({ 
   user, 
@@ -104,10 +105,11 @@ export default function Discover() {
     };
   }, [connectToDiscovery, disconnectFromDiscovery]);
 
-  const handleConnect = async (peerId: string) => {
+  const handleConnect = async (user: DiscoveredUser) => {
     try {
-      await connectToPeer(peerId);
-      navigate(`/chat/${peerId}`);
+      useContactsStore.getState().addContact(user);
+      await connectToPeer(user.id);
+      navigate(`/chat/${user.id}`);
     } catch (e) {
       console.error('Failed to connect to peer', e);
     }
@@ -122,7 +124,7 @@ export default function Discover() {
 
     if (dir === 'right') {
       // It's a match! Or at least an attempt to connect
-      handleConnect(user.id);
+      handleConnect(user);
     }
   };
 
@@ -185,7 +187,7 @@ export default function Discover() {
           </button>
           
           <button 
-            onClick={() => handleConnect(currentUsers[0].id)}
+            onClick={() => handleConnect(currentUsers[0])}
             className="w-12 h-12 rounded-full bg-blue-500/10 border-2 border-blue-500/30 flex items-center justify-center text-blue-500 hover:bg-blue-500 hover:text-white transition transform hover:scale-110 shadow-[0_0_20px_rgba(59,130,246,0.2)]"
           >
             <MessageCircle className="w-6 h-6" />

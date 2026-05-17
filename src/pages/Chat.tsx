@@ -1,18 +1,21 @@
 import { useEffect, useState, useRef } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Send, Lock, ShieldCheck, MessageSquare } from 'lucide-react';
+import { Send, Lock, ShieldCheck, MessageSquare, Check, X, User } from 'lucide-react';
 import { useChatStore } from '../store/useChatStore';
 import { useAuthStore } from '../store/useAuthStore';
 import { usePeerStore } from '../store/usePeerStore';
 import { useDiscoveryStore } from '../store/useDiscoveryStore';
+import { useContactsStore } from '../store/useContactsStore';
 
 export default function Chat() {
   const { peerId } = useParams();
+  const navigate = useNavigate();
   const { messages, loadMessages, setActivePeerId } = useChatStore();
   const { profile } = useAuthStore();
   const { initPeer, connectToPeer, sendMessage } = usePeerStore();
   const { activeUsers } = useDiscoveryStore();
+  const { contacts, pendingRequests, loadContacts, acceptRequest, rejectRequest } = useContactsStore();
   
   const [input, setInput] = useState('');
   const bottomRef = useRef<HTMLDivElement>(null);
@@ -23,7 +26,12 @@ export default function Chat() {
     }
   }, [profile?.id, initPeer]);
 
-  const activePeer = activeUsers.find(u => u.id === peerId);
+  useEffect(() => {
+    loadContacts();
+  }, [loadContacts]);
+
+  // Merge discovered user details with contact details
+  const activePeer = activeUsers.find(u => u.id === peerId) || contacts.find(c => c.id === peerId);
   const displayName = activePeer?.username || 'Encrypted Peer';
   const displayInitials = displayName.slice(0, 2).toUpperCase();
 
@@ -52,9 +60,78 @@ export default function Chat() {
 
   if (!peerId) {
     return (
-      <div className="h-screen flex items-center justify-center text-muted-foreground flex-col gap-4">
-        <MessageSquare className="w-16 h-16 opacity-20" />
-        <p>Select a peer to start an encrypted chat.</p>
+      <div className="h-screen max-w-4xl mx-auto border-x border-white/5 bg-background p-6 overflow-y-auto">
+        <h1 className="text-3xl font-black mb-8 flex items-center gap-2">
+          <MessageSquare className="text-primary" /> Chats & Connections
+        </h1>
+
+        {pendingRequests.length > 0 && (
+          <section className="mb-10">
+            <h2 className="text-xl font-bold mb-4 text-primary">Pending Requests</h2>
+            <div className="space-y-3">
+              {pendingRequests.map(req => (
+                <div key={req.id} className="p-4 rounded-2xl bg-white/5 border border-primary/20 flex items-center justify-between">
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 rounded-full bg-primary/20 flex items-center justify-center font-bold text-primary">
+                      {req.username.slice(0, 2).toUpperCase()}
+                    </div>
+                    <div>
+                      <h3 className="font-bold">{req.username}</h3>
+                      <p className="text-sm text-muted-foreground">{req.bio || 'Wants to connect'}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button 
+                      onClick={() => acceptRequest(req.id)}
+                      className="p-2 bg-green-500/20 text-green-500 hover:bg-green-500 hover:text-white rounded-xl transition"
+                    >
+                      <Check className="w-5 h-5" />
+                    </button>
+                    <button 
+                      onClick={() => rejectRequest(req.id)}
+                      className="p-2 bg-red-500/20 text-red-500 hover:bg-red-500 hover:text-white rounded-xl transition"
+                    >
+                      <X className="w-5 h-5" />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+
+        <section>
+          <h2 className="text-xl font-bold mb-4 flex items-center gap-2"><User className="w-5 h-5"/> Your Contacts</h2>
+          {contacts.length === 0 ? (
+            <div className="text-center py-12 text-muted-foreground bg-white/5 rounded-3xl border border-white/5">
+              <p>No contacts yet.</p>
+              <button 
+                onClick={() => navigate('/discover')}
+                className="mt-4 px-6 py-2 bg-primary/20 text-primary rounded-full font-bold hover:bg-primary hover:text-white transition"
+              >
+                Discover People
+              </button>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {contacts.map(contact => (
+                <div 
+                  key={contact.id} 
+                  onClick={() => navigate(`/chat/${contact.id}`)}
+                  className="p-4 rounded-2xl bg-white/5 border border-white/5 hover:border-primary/50 cursor-pointer transition flex items-center gap-4"
+                >
+                  <div className="w-12 h-12 rounded-full bg-primary/20 flex items-center justify-center font-bold text-primary">
+                    {contact.username.slice(0, 2).toUpperCase()}
+                  </div>
+                  <div>
+                    <h3 className="font-bold">{contact.username}</h3>
+                    <p className="text-sm text-muted-foreground">Tap to chat securely</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </section>
       </div>
     );
   }

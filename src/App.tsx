@@ -30,6 +30,12 @@ function App() {
     loadProfile();
   }, [loadProfile]);
 
+  useEffect(() => {
+    if (isAuth) {
+      import('./store/useContactsStore').then(m => m.useContactsStore.getState().loadContacts());
+    }
+  }, [isAuth]);
+
   return (
     <Routes>
       <Route path="/" element={!isAuth ? <Landing /> : <Navigate to="/dashboard" />} />
